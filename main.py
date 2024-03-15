@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Security
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -63,11 +64,14 @@ def get_current_username(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return username
 
-@app.get("/procesos/", dependencies=[Depends(get_current_username)])
-async def read_json():
+@app.get("/procesos/")
+async def read_json(token: str = Depends(oauth2_scheme)):
+    username = get_current_username(token)
+    if not username:
+        return JSONResponse(status_code=401, content={"detail": "No autorizado"})
     try:
         with open('resultados_procesos3.json', 'r', encoding='utf-8') as file:
             data = json.load(file)
         return data
     except FileNotFoundError:
-        return {"error": "Archivo JSON no encontrado."}
+        return JSONResponse(status_code=404, content={"error": "Archivo JSON no encontrado."})
